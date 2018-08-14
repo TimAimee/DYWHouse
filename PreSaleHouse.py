@@ -138,7 +138,7 @@ def get_three(url_3):
     # house_list = get_herf_three(allherf_content_3)
     house_list = get_herf_three(url_3)
     print "共收录", len(house_list), "套房子信息"
-    house_list_all.append(house_list)
+    house_list_all.extend(house_list)
     # for item in house_list:
     #     print json.dumps(item, ensure_ascii=False, encoding='UTF-8')
 
@@ -177,3 +177,5 @@ def get_one(url_1):
 if __name__ == "__main__":
     get_one(allherf_content_1)
     print "一共收录", len(house_list_all), "套房子信息"
+
+
