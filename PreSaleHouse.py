@@ -10,7 +10,7 @@ import urllib2
 # 网页主页
 herf_host = "http://61.142.120.214:9000/web/"
 # 第一层
-allherf_content_1 = herf_host + "salepermit.jsp"
+allherf_content_1 = herf_host + "salepermit.jsp?page={0}"
 # 第二层
 allherf_content_2 = herf_host + "realestate_presale.jsp?licenceCode=#&ProjectCode=DYW00121014"
 # 第三层
@@ -100,7 +100,7 @@ def get_table_conent_house_detail(url):
                     housemm = float(coltd[i].encode("utf-8"));
                 dic.update({colth[i]: coltd[i]})
     mprice = housePrice / housemm
-    dic.update({"单价": int(mprice)})
+    dic.update({u"单价": int(mprice)})
     return dic;
 
 
@@ -158,7 +158,7 @@ def get_two(url_2):
         get_three(url_3)
 
 
-# 第一层
+# 第一层 当前页
 def get_one(url_1):
     # 预售证页面
     print "url_1-->", url_1
@@ -173,9 +173,16 @@ def get_one(url_1):
         url_2 = herf_host + item
         get_two(url_2)
 
+# 第一层,下一页
+def get_all_persell_house():
+    for i in range(1, 21):
+        allherf_content_pager = allherf_content_1.format(i, "0")
+        print allherf_content_pager
+        # get_one(allherf_content_1)
+    print "一共收录", len(house_list_all), "套房子信息"
+
 
 if __name__ == "__main__":
-    get_one(allherf_content_1)
-    print "一共收录", len(house_list_all), "套房子信息"
+    get_all_persell_house()
 
 
