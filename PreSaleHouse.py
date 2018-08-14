@@ -2,6 +2,7 @@
 import random
 from urllib import quote, unquote
 
+import threading
 from bs4 import BeautifulSoup
 import json
 import re
@@ -19,6 +20,9 @@ allherf_content_3 = herf_host + "salestable.jsp?buildingcode=DYW0012101401&proje
 allherf_content_4 = herf_host + "House.jsp?id={0}&lcStr={1}"
 
 house_list_all = []
+
+LOCK = threading.Lock()
+progress_all = 0
 
 
 def get_soupform_url(url):
@@ -104,16 +108,24 @@ def get_table_conent_house_detail(url):
     return dic;
 
 
-def get_herf_three(url):
+def get_herf_three(url, progress_3):
     # 第三层
+    global progress_all
     list_dic = []
     list = get_house_id_list(url)
+    if len(list) == 0:
+        progress_4 = progress_3
+        return
+    else:
+        progress_4 = float(progress_3)  / len(list)
     for i in list:
         url_house_detail = allherf_content_4.format(i, "0")
         list_dic.append(get_table_conent_house_detail(url_house_detail))
+        progress_all = progress_all + progress_4
         # print random.randint(0, 1),
         # if len(list_dic) % 50 == 0:
         #     print ""
+        print "当前进度:", progress_all
     return list_dic
 
 
@@ -132,11 +144,11 @@ def get_code_url(str):
 
 
 # 第三层
-def get_three(url_3):
+def get_three(url_3, progress_3):
     # 楼栋信息
     print "url_3-->", url_3
     # house_list = get_herf_three(allherf_content_3)
-    house_list = get_herf_three(url_3)
+    house_list = get_herf_three(url_3, progress_3)
     print "共收录", len(house_list), "套房子信息"
     house_list_all.extend(house_list)
     # for item in house_list:
@@ -144,45 +156,69 @@ def get_three(url_3):
 
 
 # 第二层
-def get_two(url_2):
+def get_two(url_2, progress_2):
+    global progress_all
     # 项目页面（第几栋）
     # print "url_2-->", url_2
+    progress = 0
     list_buildingCode = []
     list_herf_two = get_allherf_content(url_2)
     for item in list_herf_two:
         href_buildingCode = item['href']
         if "buildingcode" in href_buildingCode:
             list_buildingCode.append(href_buildingCode)
+
+    if len(list_buildingCode) == 0:
+        progress_3 = progress
+        return
+    else:
+        progress_3 = float(progress_2) / len(list_buildingCode)
+
     for item in list_buildingCode:
         url_3 = herf_host + item
-        get_three(url_3)
+        progress_all = progress_all + progress_3
+        get_three(url_3, progress_3)
+        print "当前进度:", progress_all
 
 
 # 第一层 当前页
-def get_one(url_1):
+def get_one(url_1, progress):
+    global progress_all
     # 预售证页面
     print "url_1-->", url_1
     list_herf_one = get_allherf_content(url_1)
     list_licenceCode = []
+    progress_2 = 0
     for item in list_herf_one:
         href_licenceCode = item['href']
         if "licenceCode" in href_licenceCode:
             list_licenceCode.append(get_code_url(href_licenceCode))
+
+    if len(list_licenceCode) == 0:
+        progress_2 = progress
+        return
+    else:
+        progress_2 = float(progress) / len(list_licenceCode)
+
     # 第二层
     for item in list_licenceCode:
         url_2 = herf_host + item
-        get_two(url_2)
+        progress_all = progress_all + progress_2
+        get_two(url_2, progress_2)
+        print "当前进度:", progress_all
+
 
 # 第一层,下一页
 def get_all_persell_house():
+    global progress_all
+    progress_1 = 100 / 20
     for i in range(1, 21):
         allherf_content_pager = allherf_content_1.format(i, "0")
-        print allherf_content_pager
-        # get_one(allherf_content_1)
+        get_one(allherf_content_pager, progress_1)
+        progress_all = progress_all + progress_1 * i
+        print "当前进度:", progress_all,progress_1
     print "一共收录", len(house_list_all), "套房子信息"
 
 
 if __name__ == "__main__":
     get_all_persell_house()
-
-
