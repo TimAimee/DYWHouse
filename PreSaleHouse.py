@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import random
+from urllib import quote, unquote
 
 from bs4 import BeautifulSoup
 import json
@@ -7,11 +8,17 @@ import re
 import urllib2
 
 # 网页主页
-herf_home = "http://61.142.120.214:9000/web"
-allherf_content_1 = herf_home + "/salepermit.jsp"
-allherf_content_2 = herf_home + "/web/realestate_presale.jsp?licenceCode=#&ProjectCode=DYW00121014"
-allherf_content_3 = herf_home + "/salestable.jsp?buildingcode=DYW0012101401&projectcode=DYW00121014"
-allherf_content_4 = herf_home + "/House.jsp?id={0}&lcStr={1}"
+herf_host = "http://61.142.120.214:9000/web/"
+# 第一层
+allherf_content_1 = herf_host + "salepermit.jsp"
+# 第二层
+allherf_content_2 = herf_host + "realestate_presale.jsp?licenceCode=#&ProjectCode=DYW00121014"
+# 第三层
+allherf_content_3 = herf_host + "salestable.jsp?buildingcode=DYW0012101401&projectcode=DYW00121014"
+# 第四层
+allherf_content_4 = herf_host + "House.jsp?id={0}&lcStr={1}"
+
+house_list_all = []
 
 
 def get_soupform_url(url):
@@ -48,6 +55,7 @@ def get_allherf_content(url):
 
 
 def get_house_id_list(url):
+    # url-->house id
     list = []
     soup = get_soupform_url(url)
     table_body = soup.findAll('div', attrs={'style': 'cursor:hand'})
@@ -67,6 +75,7 @@ def get_list_id(str):
 
 
 def get_table_conent_house_detail(url):
+    ##第四层 house_table-->dic
     dic = {};
     housePrice = 0;
     housemm = 1;
@@ -95,20 +104,76 @@ def get_table_conent_house_detail(url):
     return dic;
 
 
-def get_herf(url):
+def get_herf_three(url):
+    # 第三层
     list_dic = []
     list = get_house_id_list(url)
     for i in list:
         url_house_detail = allherf_content_4.format(i, "0")
         list_dic.append(get_table_conent_house_detail(url_house_detail))
-        print random.randint(0,1),
-        if len(list_dic) % 50 == 0:
-            print ""
+        # print random.randint(0, 1),
+        # if len(list_dic) % 50 == 0:
+        #     print ""
     return list_dic
 
 
+def get_code_url(str):
+    # realestate_presale.jsp?licenceCode=惠湾房预许字【2018】第108号&ProjectCode=DYW00403004
+    #                                   |||
+    # realestate_presale.jsp?licenceCode=%BB%DD%CD%E5%B7%BF%D4%A4%D0%ED%D7%D6%A1%BE2018%A1%BF%B5%DA108%BA%C5&ProjectCode=DYW00403004
+    searchObj0 = re.finditer("=.*&", str)
+    part = ""
+    for match in searchObj0:
+        part = match.group().replace("=", "").replace("&", "")
+        part_utf_8 = part.encode('gbk')
+    part_quote = quote(part_utf_8)
+    str = str.replace(part, part_quote)
+    return str
+
+
+# 第三层
+def get_three(url_3):
+    # 楼栋信息
+    print "url_3-->", url_3
+    # house_list = get_herf_three(allherf_content_3)
+    house_list = get_herf_three(url_3)
+    print "共收录", len(house_list), "套房子信息"
+    house_list_all.append(house_list)
+    # for item in house_list:
+    #     print json.dumps(item, ensure_ascii=False, encoding='UTF-8')
+
+
+# 第二层
+def get_two(url_2):
+    # 项目页面（第几栋）
+    # print "url_2-->", url_2
+    list_buildingCode = []
+    list_herf_two = get_allherf_content(url_2)
+    for item in list_herf_two:
+        href_buildingCode = item['href']
+        if "buildingcode" in href_buildingCode:
+            list_buildingCode.append(href_buildingCode)
+    for item in list_buildingCode:
+        url_3 = herf_host + item
+        get_three(url_3)
+
+
+# 第一层
+def get_one(url_1):
+    # 预售证页面
+    print "url_1-->", url_1
+    list_herf_one = get_allherf_content(url_1)
+    list_licenceCode = []
+    for item in list_herf_one:
+        href_licenceCode = item['href']
+        if "licenceCode" in href_licenceCode:
+            list_licenceCode.append(get_code_url(href_licenceCode))
+    # 第二层
+    for item in list_licenceCode:
+        url_2 = herf_host + item
+        get_two(url_2)
+
+
 if __name__ == "__main__":
-    house_list = get_herf(allherf_content_3)
-    print "\n共收录", len(house_list), "套房子信息"
-    for item in house_list:
-        print json.dumps(item, ensure_ascii=False, encoding='UTF-8')
+    get_one(allherf_content_1)
+    print "一共收录", len(house_list_all), "套房子信息"
