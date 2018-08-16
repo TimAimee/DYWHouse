@@ -196,7 +196,7 @@ def get_time_open(url_2):
                     value = coltd[i]
                     value = "\"" + value + "\"";
                     if u"开盘时间" in colth[i]:
-                        dic = {key: value}
+                        dic = {u"开盘时间": value}
                         break
     except Exception:
         pass
