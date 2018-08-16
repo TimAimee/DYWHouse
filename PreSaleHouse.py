@@ -22,6 +22,7 @@ house_list_all = []
 progress_all = 0
 conn = None
 cursor = None
+have_create_table = False
 
 
 def get_soupform_url(url):
@@ -78,16 +79,19 @@ def get_list_id(str):
 
 
 def insert_db(dic):
-    global conn, cursor
-    # sql_create_table = get_sql_create_table(dic)
-    sql_insert_value = get_sql_insert_table(dic)
+    global conn, cursor, have_create_table
 
-    # cursor.execute(sql_create_table)
+    if not have_create_table:
+        sql_create_table = get_sql_create_table(dic)
+        cursor.execute(sql_create_table)
+        have_create_table = True
+
+    sql_insert_value = get_sql_insert_table(dic)
     cursor.execute(sql_insert_value)
     conn.commit()
 
 
-def get_table_conent_house_detail(url):
+def get_table_conent_house_detail(url, dic_time_open):
     ##第四层 house_table-->dic
     global sql_key
     dic = {};
@@ -119,12 +123,13 @@ def get_table_conent_house_detail(url):
                 dic.update({key: value})
     mprice = housePrice // housemm
     dic.update({u"单价": "\"" + str(mprice) + "\""})
+    dic.update(dic_time_open)
     # print json.dumps(dic, ensure_ascii=False, encoding="utf-8")
     insert_db(dic)
     return dic;
 
 
-def get_herf_three(url, progress_3):
+def get_herf_three(url, progress_3, dic_time_open):
     # 第三层
     global progress_all
     list_dic = []
@@ -136,7 +141,7 @@ def get_herf_three(url, progress_3):
         progress_4 = float(progress_3) / len(list)
     for i in list:
         url_house_detail = allherf_content_4.format(i, "0")
-        list_dic.append(get_table_conent_house_detail(url_house_detail))
+        list_dic.append(get_table_conent_house_detail(url_house_detail, dic_time_open))
         progress_all = progress_all + progress_4
         # print random.randint(0, 1),
         # if len(list_dic) % 50 == 0:
@@ -160,25 +165,53 @@ def get_code_url(str):
 
 
 # 第三层
-def get_three(url_3, progress_3):
+def get_three(url_3, progress_3, dic_time_open):
     # 楼栋信息
-    print "url_3-->", url_3
+    print "\t\t\turl_3-->", url_3
     # house_list = get_herf_three(allherf_content_3)
-    house_list = get_herf_three(url_3, progress_3)
-    print "共收录", len(house_list), "套房子信息"
+    house_list = get_herf_three(url_3, progress_3, dic_time_open)
+    print "\t\t\t共收录", len(house_list), "套房子信息"
     house_list_all.extend(house_list)
     # for item in house_list:
     #     print json.dumps(item, ensure_ascii=False, encoding='UTF-8')
+
+
+def get_time_open(url_2):
+    soup = get_soupform_url(url_2)
+    dic = {}
+    table_body = soup.find('table', attrs={'width': '900'})
+    # print table_body
+    rows = table_body.find_all('tr')
+    try:
+        for row in rows:
+            colth = row.find_all('th')
+            colth = [ele.text.strip() for ele in colth]
+            coltd = row.find_all('td')
+            coltd = [ele.text.strip() for ele in coltd]
+            if (len(colth) == 0):
+                pass
+            else:
+                for i in range(0, len(colth)):
+                    key = colth[i]
+                    value = coltd[i]
+                    value = "\"" + value + "\"";
+                    if u"开盘时间" in colth[i]:
+                        dic = {key: value}
+                        break
+    except Exception:
+        pass
+    return dic
 
 
 # 第二层
 def get_two(house_name, url_2, progress_2):
     global progress_all
     # 项目页面（第几栋）
-    print "url_2:", house_name, "-->", url_2
+    print "\t\turl_2:", house_name, "-->", url_2
     progress = 0
     list_buildingCode = []
     list_herf_two = get_allherf_content(url_2)
+    dic_time_open = get_time_open(url_2)
     for item in list_herf_two:
         href_buildingCode = item['href']
         if "buildingcode" in href_buildingCode:
@@ -193,7 +226,7 @@ def get_two(house_name, url_2, progress_2):
     for item in list_buildingCode:
         url_3 = herf_host + item
         progress_all = progress_all + progress_3
-        get_three(url_3, progress_3)
+        get_three(url_3, progress_3, dic_time_open)
         # print "当前进度:", progress_all
 
 
@@ -201,7 +234,7 @@ def get_two(house_name, url_2, progress_2):
 def get_one(url_1, progress):
     global progress_all
     # 预售证页面
-    print "url_1-->", url_1
+    print "\turl_1-->", url_1
     list_herf_one = get_allherf_content(url_1)
     list_licenceCode = []
     list_licenceCode_house = []
@@ -253,7 +286,8 @@ def get_sql_insert_table(dict):
     return sql
 
 
-if __name__ == "__main__":
+def read_and_save():
+    global conn, cursor
     config = {
         'host': '127.0.0.1',
         'port': 3306,
@@ -267,3 +301,7 @@ if __name__ == "__main__":
     get_all_persell_house()
     cursor.close()
     conn.close()
+
+
+if __name__ == "__main__":
+    read_and_save()
