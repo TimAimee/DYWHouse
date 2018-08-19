@@ -15,3 +15,7 @@ allherf_content_3 = herf_host + "salestable.jsp?buildingcode=DYW0012101401&proje
 allherf_content_4 = herf_host + "House.jsp?id={0}&lcStr={1}"
 
 # 示例图片
+![示例1](http://7pn5vy.com1.z0.glb.clouddn.com/%E5%A4%A7%E4%BA%9A%E6%B9%BE_all.png)
+![示例2](http://7pn5vy.com1.z0.glb.clouddn.com/%E7%8E%96%E9%BE%99%E6%B9%BE_2.png)
+![示例3](http://7pn5vy.com1.z0.glb.clouddn.com/%E7%8E%96%E9%BE%99%E6%B9%BE_8.png)
+![示例3](http://7pn5vy.com1.z0.glb.clouddn.com/%E7%8E%96%E9%BE%99%E6%B9%BE_5.png)
